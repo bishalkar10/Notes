@@ -28,29 +28,22 @@ const registerSchema = z.object({
     )
 });
 
-// Middleware functions
-export const validateLogin = (req: Request, res: Response, next: NextFunction) => {
-  try {
-    loginSchema.parse(req.body);
-    next();
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(createError(400, error.errors[0].message));
-    } else {
-      next(createError(500, 'Validation error'));
+// Middleware function for validation
+const validateSchema = (schema: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      schema.parse(req.body);
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(createError(400, error.errors[0].message));
+      } else {
+        next(createError(500, 'Validation error'));
+      }
     }
-  }
+  };
 };
 
-export const validateRegister = (req: Request, res: Response, next: NextFunction) => {
-  try {
-    registerSchema.parse(req.body);
-    next();
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(createError(400, error.errors[0].message));
-    } else {
-      next(createError(500, 'Validation error'));
-    }
-  }
-}; 
+// Use the generic validation function for login and registration
+export const validateLogin = validateSchema(loginSchema);
+export const validateRegister = validateSchema(registerSchema);
