@@ -11,7 +11,7 @@ router.get('/', asyncHandler(notesController.getNotes));
 router.post('/', asyncHandler(notesController.createNote));
 router.put('/:id', asyncHandler(notesController.updateNote));
 router.delete('/:id', asyncHandler(notesController.deleteNote));
-
+router.patch('/:id', asyncHandler(notesController.updateNotePublicStatus));
 // Public route - can access public notes without authentication
 router.get('/:id', asyncHandler(notesController.getNote));
 

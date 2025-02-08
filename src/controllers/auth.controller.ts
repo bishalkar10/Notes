@@ -6,6 +6,16 @@ import { User } from "../models/user.model"
 import { environment } from '../config/environment';
 import { createError } from '../utils/errors';
 
+const setCookieToken = (res: Response, token: string) => {
+  res.cookie('session_token', token, {
+    secure: environment.NODE_ENV === 'production',
+    sameSite: 'lax',
+    signed: true,
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  });
+};
+
 export const authController = {
   async register(req: Request, res: Response) {
     const { username, password } = req.body;
@@ -25,12 +35,7 @@ export const authController = {
       expiresIn: '1d'
     });
 
-    res.cookie('session_token', token, {
-      httpOnly: true,
-      secure: environment.NODE_ENV === 'production',
-      sameSite: true,
-      signed: true,
-    });
+    setCookieToken(res, token);
 
     res.status(201).json({
       status: "success",
@@ -55,20 +60,21 @@ export const authController = {
       expiresIn: '1d'
     });
 
-    res.cookie('session_token', token, {
-      httpOnly: true,
-      secure: environment.NODE_ENV === 'production',
-      sameSite: true,
-      signed: true,
-    });
+    setCookieToken(res, token);
 
+    console.log("login successful")
     res.status(200).json({ 
       status: 'success',
-      message: 'Login successful'
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        username: user.username
+      }
     });
   },
 
-  async logout(req: Request, res: Response) {
+
+  async logout(_req: Request, res: Response) {
     res.clearCookie('session_token');
     res.json({ message: 'Logged out successfully' });
   }

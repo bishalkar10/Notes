@@ -7,12 +7,13 @@ export const notesController = {
     // Get a specific note (public or private) 
     async getNote(req: AuthenticatedRequest, res: Response) {
       const { id } = req.params;
-      const note = await Note.findOne({ id });
+      const note = await Note.findOne({ id })
+        .select('id user title content public createdAt updatedAt');
+      
       if (!note) {
         throw createError(404, 'Note not found');
       }
-  
-      // Check if note is accessible
+
       if (!note.public && (!req.user || note.user.toString() !== req.user.id)) {
         throw createError(403, 'Not authorized to access this note');
       }
@@ -20,18 +21,17 @@ export const notesController = {
       res.json(note);
     },
   
-    // Get all notes for logged-in user
     async getNotes(req: AuthenticatedRequest, res: Response) {
       const notes = await Note.find({ user: req.user!.id })
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .select('id user title content public createdAt updatedAt');
       
       res.status(200).json({
         status: "success",
         data: notes
-      })
+      });
     },
-  
-    // Create a new note
+
     async createNote(req: AuthenticatedRequest, res: Response) {
       const { title, content, public: isPublic } = req.body;
   
@@ -42,37 +42,79 @@ export const notesController = {
         user: req.user!.id
       });
   
-      res.status(200).json({
+      res.status(201).json({
         status: "success",
-        data: note
-      })
+        data: {
+          id: note._id,
+          user: note.user,
+          title: note.title,
+          content: note.content,
+          public: note.public,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+        },
+      });
     },
   
-    // Update a note
     async updateNote(req: AuthenticatedRequest, res: Response) {
+      const { id } = req.params; // This refers to your custom `id` field
+      const { title, content } = req.body;
+    
+      // Find and update the note based on the custom `id` field
+      const note = await Note.findOneAndUpdate(
+        { id }, // Search using custom `id`
+        { title, content }, // Fields to update
+        { new: true, runValidators: true, select: "id user title content public createdAt updatedAt" } // Return updated document
+      );
+    
+      if (!note) {
+        throw createError(404, "Note not found");
+      }
+    
+      // Ensure the logged-in user is the owner before sending the response
+      if (note.user !== req.user!.id) {
+        throw createError(403, "Not authorized to update this note");
+      }
+    
+      res.status(200).json({
+        status: "success",
+        data: {
+          id: note.id,
+          user: note.user,
+          title: note.title,
+          content: note.content,
+          public: note.public,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+        },
+      });
+    },
+    
+
+    async updateNotePublicStatus(req: AuthenticatedRequest, res: Response) {
       const { id } = req.params;
-      const { title, content, public: isPublic } = req.body;
+      const { public: isPublic } = req.body;
   
-      const note = await Note.findOne({ id });
+      // Find and update the note in one operation
+      const note = await Note.findOneAndUpdate(
+        { id, user: req.user!.id }, // Search by id and user to ensure ownership
+        { public: isPublic },
+        { new: true, runValidators: true, select: 'id public createdAt updatedAt' }
+      );
   
       if (!note) {
-        throw createError(404, 'Note not found');
+        throw createError(404, 'Note not found or not authorized');
       }
-  
-      // Only owner can update
-      if (note.user.toString() !== req.user!.id) {
-        throw createError(403, 'Not authorized to update this note');
-      }
-  
-      note.title = title || note.title;
-      note.content = content || note.content;
-      note.public = isPublic !== undefined ? isPublic : note.public;
-      await note.save();
   
       res.status(200).json({
         status: "success",
-        data: note
-      })
+        data: {
+          id: note.id,
+          public: note.public,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+        },
+      });
     },
   
     // Delete a note
