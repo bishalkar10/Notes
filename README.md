@@ -1,79 +1,193 @@
-# Application Setup Guide
+# Notes API - Backend
+
+A robust RESTful API for managing personal and public notes, built with Node.js, Express.js, TypeScript, and MongoDB.
+
+## Features
+
+- **User Authentication**: JWT-based authentication with secure cookie handling
+- **Notes Management**: Create, read, update, and delete notes
+- **Public/Private Notes**: Control note visibility (public notes are accessible to everyone)
+- **Security**: Rate limiting, CORS, helmet security headers
+- **Type Safety**: Full TypeScript implementation
+- **Logging**: Winston-based logging system
+- **Validation**: Zod schema validation
+- **Error Handling**: Centralized error handling middleware
+
+## Tech Stack
+
+- **Runtime**: Node.js 20+
+- **Framework**: Express.js
+- **Language**: TypeScript
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT + bcrypt
+- **Validation**: Zod
+- **Security**: Helmet, express-rate-limit, CORS
+- **Logging**: Winston
+- **Development**: tsx, nodemon
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed on your local machine:
+Before running the application, ensure you have:
 
 - [Node.js](https://nodejs.org/) (version 20 or higher)
-- [MongoDB](https://www.mongodb.com/try/download/community) (installed and running locally)
+- [MongoDB](https://www.mongodb.com/) (local installation or MongoDB Atlas)
 
 ## Environment Variables
 
-You will need to set up two environment variables for the application to run correctly. Create a `.env` file in the root of your project and add the following:
+Create a `.env` file in the root directory with the following variables:
 
-```.env
-JWT_SECRET=your_jwt_secret_here
+```env
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# Database
+MONGODB_URI=mongodb://localhost:27017/notes-app
+
+# Authentication
+JWT_SECRET=your_super_secure_jwt_secret_here
 COOKIE_SECRET=your_cookie_secret_here
+
+# CORS
+CORS_ORIGIN=http://localhost:5173
 ```
-Replace `your_jwt_secret_here` and `your_cookie_secret_here` with your actual secret values.
 
-## Setting Up MongoDB
+## Installation & Setup
 
-1. **Install MongoDB**: Follow the instructions on the [MongoDB installation page](https://docs.mongodb.com/manual/installation/) to install MongoDB on your local machine.
-2. **Start MongoDB**: Once installed, start the MongoDB server by running the following command in your terminal:
+1. **Clone the repository** (if applicable)
    ```bash
-   mongod
+   git clone <repository-url>
+   cd Notes
    ```
 
-## Running the Application
-
-1. **Install Dependencies**: Navigate to your project directory and install the required dependencies:
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. **Start the Application**: After installing the dependencies, you can start the application with:
+3. **Set up environment variables**
+   - Copy the environment variables above into a `.env` file
+   - Replace placeholder values with your actual secrets
+
+4. **Start MongoDB**
+   - Local: `mongod` (if installed locally)
+   - Or use MongoDB Atlas connection string
+
+5. **Run the application**
    ```bash
+   # Development mode with hot reload
+   npm run dev
+   
+   # Production build and start
+   npm run build
    npm start
+   
+   # Development with tsx
+   npm run start:dev
    ```
 
-Your application should now be running locally. You can access it at `http://localhost:3000` (or the port specified in your application).
+The API will be available at `http://localhost:3000` (or your specified PORT).
 
-## Directory Structure
+## API Endpoints
 
-The `src` directory contains the main application code, organized into several subdirectories:
+### Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login user
+- `POST /api/auth/logout` - Logout user
 
-- **`config/`**: Contains configuration files for the application.
-  - `database.ts`: Handles the MongoDB connection.
-  - `environment.ts`: Loads environment variables and exports them for use throughout the application.
+### Notes
+- `GET /api/notes` - Get all user's notes (authenticated)
+- `GET /api/notes/:id` - Get a specific note (public notes accessible to all)
+- `POST /api/notes` - Create a new note (authenticated)
+- `PUT /api/notes/:id` - Update a note (authenticated, owner only)
+- `PATCH /api/notes/:id/public` - Update note's public status (authenticated, owner only)
+- `DELETE /api/notes/:id` - Delete a note (authenticated, owner only)
 
-- **`controllers/`**: Contains the logic for handling requests and responses.
-  - `auth.controller.ts`: Manages user authentication (login, registration, logout).
-  - `notes.controller.ts`: Manages note-related operations (CRUD).
+### API Response Format
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "unique-note-id",
+    "title": "Note Title",
+    "content": "Note content...",
+    "public": false,
+    "user": "user-id",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
 
-- **`middleware/`**: Contains middleware functions for request processing.
-  - `auth.middleware.ts`: Checks if a user is authenticated.
-  - `error.middleware.ts`: Handles errors that occur during request processing.
+## Project Structure
 
-- **`models/`**: Contains Mongoose models for the application.
-  - `note.model.ts`: Defines the schema for notes.
-  - `user.model.ts`: Defines the schema for users.
+```
+src/
+├── config/
+│   ├── database.ts          # MongoDB connection setup
+│   └── environment.ts       # Environment variables configuration
+├── controllers/
+│   ├── auth.controller.ts   # Authentication logic
+│   └── notes.controller.ts  # Notes CRUD operations
+├── middleware/
+│   ├── auth.middleware.ts   # JWT authentication middleware
+│   └── error.middleware.ts  # Centralized error handling
+├── models/
+│   ├── note.model.ts        # Note schema (Mongoose)
+│   └── user.model.ts        # User schema (Mongoose)
+├── routes/
+│   ├── auth.routes.ts       # Authentication routes
+│   └── notes.routes.ts      # Notes routes
+├── types/
+│   └── types.ts             # TypeScript type definitions
+├── utils/
+│   ├── async-handler.ts     # Async error wrapper
+│   ├── errors.ts            # Custom error utilities
+│   └── logger.ts            # Winston logger configuration
+├── validators/
+│   └── auth.validator.ts    # Request validation schemas
+└── index.ts                 # Application entry point
+```
 
-- **`routes/`**: Contains route definitions for the application.
-  - `auth.routes.ts`: Defines routes for authentication-related actions.
-  - `notes.routes.ts`: Defines routes for note-related actions.
+## Security Features
 
-- **`types/`**: Contains TypeScript type definitions used throughout the application.
-  - `types.ts`: Defines interfaces for environment variables and authenticated requests.
+- **Rate Limiting**: 100 requests per 15 minutes per IP
+- **CORS**: Configurable cross-origin resource sharing
+- **Helmet**: Security headers protection
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: bcrypt for password security
+- **Input Validation**: Zod schema validation
+- **Error Handling**: Prevents information leakage
 
-- **`utils/`**: Contains utility functions and helpers.
-  - `async-handler.ts`: Wraps async route handlers to catch errors.
-  - `errors.ts`: Utility for creating custom error objects.
-  - `logger.ts`: Provides logging functionality.
+## Deployment
 
-- **`validators/`**: Contains validation logic for incoming requests.
-  - `auth.validator.ts`: Validates user login and registration data.
+The application is configured for deployment on Render.com with the included `render.yaml` file.
 
-## Additional Information
+### Environment Variables for Production
+Ensure these environment variables are set in your production environment:
+- `MONGODB_URI` - Your MongoDB connection string
+- `JWT_SECRET` - Strong JWT secret key
+- `COOKIE_SECRET` - Cookie signing secret
+- `CORS_ORIGIN` - Your frontend domain
+- `NODE_ENV=production`
 
-For further details on the application, please refer to the documentation or the code comments.
+## Development Scripts
+
+```bash
+npm run dev        # Start with nodemon and tsx
+npm run build      # Build TypeScript to JavaScript
+npm start          # Start production server
+npm run start:dev  # Start with tsx directly
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the ISC License.

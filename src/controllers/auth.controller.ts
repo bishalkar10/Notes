@@ -18,25 +18,16 @@ const setCookieToken = (res: Response, token: string) => {
 
 export const authController = {
   async register(req: Request, res: Response) {
-    const { username, password } = req.body;
-
-    const existingUser = await User.findOne({ username });
+    const { email, password } = req.body;
+  
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      throw createError(409, 'Username already exists');
+      throw createError(409, 'Email already registered');
     }
-
+  
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, password: hashedPassword });
-
-    const token = jwt.sign({
-      id: user.id,
-      username: user.username,
-    }, environment.JWT_SECRET as string, {
-      expiresIn: '1d'
-    });
-
-    setCookieToken(res, token);
-
+    await User.create({ email: email.toLowerCase(), password: hashedPassword });
+  
     res.status(201).json({
       status: "success",
       message: 'User registered successfully'
@@ -44,9 +35,9 @@ export const authController = {
   },
 
   async login(req: Request, res: Response) {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       throw createError(404, 'User not found');
     }
@@ -56,7 +47,10 @@ export const authController = {
       throw createError(401, 'Invalid password');
     }
 
-    const token = jwt.sign({ id: user.id }, environment.JWT_SECRET as string, {
+    const token = jwt.sign({ 
+      id: user.id,
+      email: user.email
+    }, environment.JWT_SECRET as string, {
       expiresIn: '1d'
     });
 
@@ -68,11 +62,10 @@ export const authController = {
       message: 'Login successful',
       user: {
         id: user.id,
-        username: user.username
+        email: user.email
       }
     });
   },
-
 
   async logout(_req: Request, res: Response) {
     res.clearCookie('session_token');

@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 
@@ -9,11 +9,13 @@ const userSchema = new mongoose.Schema({
         unique: true,
         default: () => uuidv4(),
     },
-    username: {
+    email: {
         type: String,
         required: true,
         unique: true,
         trim: true,
+        lowercase: true,
+        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email address']
     },
     password: {
         type: String,

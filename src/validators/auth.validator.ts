@@ -1,35 +1,32 @@
-import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
-import { createError } from '../utils/errors';
+import { Request, Response, NextFunction } from "express";
+import { z } from "zod";
+import { createError } from "../utils/errors";
+
+// Common validation rules
+const commonFields = {
+  email: z
+    .string()
+    .email("Invalid email format")
+    .min(5, "Email must be at least 5 characters")
+    .max(255, "Email cannot exceed 255 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+};
 
 // Validation schemas
-const loginSchema = z.object({
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username cannot exceed 50 characters'),
-  password: z
-    .string()
-    .min(6, 'Password must be at least 6 characters')
-});
+const loginSchema = z.object(commonFields);
 
 const registerSchema = z.object({
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username cannot exceed 50 characters'),
-  password: z
-    .string()
-    .min(6, 'Password must be at least 6 characters')
-    .max(100, 'Password cannot exceed 100 characters')
+  ...commonFields,
+  password: commonFields.password
+    .max(100, "Password cannot exceed 100 characters")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
-    )
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+    ),
 });
 
-// Middleware function for validation
-const validateSchema = (schema: any) => {
+// Type-safe schema validation
+const validateSchema = <T extends z.ZodSchema>(schema: T) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       schema.parse(req.body);
@@ -38,12 +35,11 @@ const validateSchema = (schema: any) => {
       if (error instanceof z.ZodError) {
         next(createError(400, error.errors[0].message));
       } else {
-        next(createError(500, 'Validation error'));
+        next(createError(500, "Validation error"));
       }
     }
   };
 };
 
-// Use the generic validation function for login and registration
 export const validateLogin = validateSchema(loginSchema);
 export const validateRegister = validateSchema(registerSchema);

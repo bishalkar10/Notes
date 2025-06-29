@@ -10,5 +10,5 @@ export interface Environment {
 }
 
 export interface AuthenticatedRequest extends Request {
-    user: { id: string; username: string };
+    user: { id: string; email: string };
 }
